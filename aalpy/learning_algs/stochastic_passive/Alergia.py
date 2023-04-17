@@ -3,23 +3,27 @@ from collections import defaultdict
 from bisect import insort
 
 from aalpy.automata import MarkovChain, MdpState, Mdp, McState, StochasticMealyState, \
-    StochasticMealyMachine
+    StochasticMealyMachine, IntervalMdpState, IntervalMdp
 from aalpy.learning_algs.stochastic_passive.CompatibilityChecker import HoeffdingCompatibility
 from aalpy.learning_algs.stochastic_passive.FPTA import create_fpta
 
 state_automaton_map = {'mc': (McState, MarkovChain), 'mdp': (MdpState, Mdp),
-                       'smm': (StochasticMealyState, StochasticMealyMachine)}
+                       'smm': (StochasticMealyState, StochasticMealyMachine),
+                       'interval_mdp': (IntervalMdpState, IntervalMdp)}
 
 
 class Alergia:
     def __init__(self, data, automaton_type, eps=0.005, compatibility_checker=None, optimize_for='accuracy',
-                 print_info=False):
+                 interval_confidence=None, interval_method=None, print_info=False):
+
         assert eps == 'auto' or 0 < eps <= 2
         assert optimize_for in {'memory', 'accuracy'}
 
         self.automaton_type = automaton_type
         self.print_info = print_info
         self.optimize_for = optimize_for
+        self.interval_conf = interval_confidence
+        self.interval_method = interval_method
 
         if eps == 'auto':
             eps = 10 / sum(len(d) - 1 for d in data)  # len - 1 to ignore initial output
@@ -122,7 +126,15 @@ class Alergia:
                 for io, freq in r.input_frequency.items():
                     outputs_per_input[io[0]] += freq
                 for io in r.input_frequency.keys():
-                    r.children_prob[io] = r.input_frequency[io] / outputs_per_input[io[0]]
+                    if self.automaton_type != 'interval_mdp':
+                        r.children_prob[io] = r.input_frequency[io] / outputs_per_input[io[0]]
+                    else:
+                        from statsmodels.stats.proportion import proportion_confint
+                        lower, upper = proportion_confint(r.input_frequency[io],
+                                                          outputs_per_input[io[0]],
+                                                          1 - self.interval_conf,
+                                                          self.interval_method)
+                        r.children_prob[io] = (lower, upper)
 
     def get_blue_node(self, red_node):
         if self.optimize_for == 'memory':
@@ -157,7 +169,7 @@ class Alergia:
             for io, c in red_eq.children.items():
                 destination = red_mdp_map[tuple(c.getPrefix())]
                 i = io if self.automaton_type == 'mc' else io[0]
-                if self.automaton_type == 'mdp':
+                if self.automaton_type == 'mdp' or 'interval_mdp':
                     s.transitions[i].append((destination, red_eq.children_prob[io]))
                 elif self.automaton_type == 'mc':
                     s.transitions.append((destination, red_eq.children_prob[i]))
@@ -169,7 +181,8 @@ class Alergia:
         return a_c(initial_state, states)
 
 
-def run_Alergia(data, automaton_type, eps=0.005, compatibility_checker=None, optimize_for='accuracy', print_info=False):
+def run_Alergia(data, automaton_type, eps=0.005, compatibility_checker=None, optimize_for='accuracy',
+                print_info=False, **kwargs):
     """
     Run Alergia or IOAlergia on provided data.
 
@@ -189,16 +202,24 @@ def run_Alergia(data, automaton_type, eps=0.005, compatibility_checker=None, opt
 
         compatibility_checker: impl. of class CompatibilityChecker, HoeffdingCompatibility with eps value by default
 
-        (note: not interchangeable, depends on data)
+        kwargs: interval_confidence and interval_method
+
         print_info:
 
     Returns:
 
         mdp, smm, or markov chain
     """
-    assert automaton_type in {'mdp', 'mc', 'smm'}
+    assert automaton_type in {'mdp', 'mc', 'smm', 'interval_mdp'}
+    method, interval_confidence = None, None
+    if automaton_type == 'interval_mdp':
+        method = kwargs.get('interval_method', 'normal')
+        interval_confidence = kwargs.get('interval_confidence', 0.9)
+
     alergia = Alergia(data, eps=eps, automaton_type=automaton_type, optimize_for=optimize_for,
-                      compatibility_checker=compatibility_checker, print_info=print_info)
+                      compatibility_checker=compatibility_checker, interval_confidence=interval_confidence,
+                      interval_method=method,
+                      print_info=print_info)
     model = alergia.run()
     del alergia.mutableTreeRoot, alergia.immutableTreeRoot, alergia
     return model
