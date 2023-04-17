@@ -45,11 +45,14 @@ def get_correct_prop_values(exp_name):
     return list(correct_model_properties[exp_name].values())
 
 
-def _target_string(target, orig_id_to_int_id):
+def _target_string(target, orig_id_to_int_id, is_interval_mdp):
     target_state = target[0]
     target_prob = target[1]
     target_id = orig_id_to_int_id[target_state.state_id]
-    return f"{target_prob} : (loc'={target_id})"
+    if not is_interval_mdp:
+        return f"{target_prob} : (loc'={target_id})"
+    else:
+        return f"[{target_prob[0]},{target_prob[1]}]  : (loc'={target_id})"
 
 
 def _sanitize_for_prism(symbol):
@@ -59,7 +62,7 @@ def _sanitize_for_prism(symbol):
         return symbol
 
 
-def mdp_2_prism_format(mdp: Mdp, name: str, output_path=None):
+def mdp_2_prism_format(mdp: Mdp, name: str, output_path=None, is_interval_mdp=False):
     """
     Translates MDP to Prims modelling language.
 
@@ -90,7 +93,7 @@ def mdp_2_prism_format(mdp: Mdp, name: str, output_path=None):
         for inp in source.transitions.keys():
             if source.transitions[inp]:
                 target_strings = \
-                    map(lambda target: _target_string(target, orig_id_to_int_id), source.transitions[inp])
+                    map(lambda target: _target_string(target, orig_id_to_int_id, is_interval_mdp), source.transitions[inp])
                 target_joined = " + ".join(target_strings)
                 module_string += f"[{_sanitize_for_prism(inp)}] loc={source_id} -> {os.linesep} {target_joined};"
                 module_string += os.linesep
