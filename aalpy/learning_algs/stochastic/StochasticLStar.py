@@ -207,7 +207,8 @@ def run_stochastic_Lstar(input_alphabet, sul: SUL, eq_oracle: Oracle, target_una
         'steps_eq_oracle': eq_oracle.num_steps,
         'learning_time': learning_time,
         'eq_oracle_time': eq_query_time,
-        'total_time': total_time
+        'total_time': total_time,
+        'observation_table': observation_table
     }
 
     if print_level > 0:

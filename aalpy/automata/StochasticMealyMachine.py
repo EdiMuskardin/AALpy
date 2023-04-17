@@ -7,6 +7,7 @@ from aalpy.base import Automaton, AutomatonState
 
 class StochasticMealyState(AutomatonState):
     """ """
+
     def __init__(self, state_id):
         super().__init__(state_id)
         # each child is a tuple (newNode, output, probability)
@@ -67,6 +68,10 @@ class StochasticMealyMachine(Automaton):
 
     def to_mdp(self):
         return smm_to_mdp_conversion(self)
+
+    def to_interval_smm(self, observation_table, confidence=0.9, method='normal'):
+        from aalpy.automata import interval_smm_from_learning_data
+        return interval_smm_from_learning_data(self, observation_table, confidence, method)
 
 
 def smm_to_mdp_conversion(smm: StochasticMealyMachine):

@@ -6,11 +6,12 @@ from pathlib import Path
 from pydot import Dot, Node, Edge, graph_from_dot_file
 
 from aalpy.automata import Dfa, MooreMachine, Mdp, Onfsm, MealyState, DfaState, MooreState, MealyMachine, \
-    MdpState, StochasticMealyMachine, StochasticMealyState, OnfsmState, MarkovChain, McState
+    MdpState, StochasticMealyMachine, StochasticMealyState, OnfsmState, MarkovChain, McState, IntervalMdp, IntervalSmm
 
 file_types = ['dot', 'png', 'svg', 'pdf', 'string']
 automaton_types = {Dfa: 'dfa', MealyMachine: 'mealy', MooreMachine: 'moore', Mdp: 'mdp',
-                   StochasticMealyMachine: 'smm', Onfsm: 'onfsm', MarkovChain: 'mc'}
+                   StochasticMealyMachine: 'smm', Onfsm: 'onfsm', MarkovChain: 'mc',
+                   IntervalMdp: 'interval_mdp', IntervalSmm: 'interval_smm'}
 
 
 def _wrap_label(label):
@@ -35,9 +36,9 @@ def _get_node(state, automaton_type):
         return Node(state.state_id, label=_wrap_label(state.state_id))
     if automaton_type == 'mc':
         return Node(state.state_id, label=_wrap_label(f'{state.output}'))
-    if automaton_type == 'mdp':
+    if automaton_type == 'mdp' or automaton_type == 'interval_mdp':
         return Node(state.state_id, label=_wrap_label(f'{state.output}'))
-    if automaton_type == 'smm':
+    if automaton_type == 'smm' or automaton_type == 'interval_smm':
         return Node(state.state_id, label=_wrap_label(state.state_id))
 
 
@@ -73,6 +74,16 @@ def _add_transition_to_graph(graph, state, automaton_type, display_same_state_tr
                     continue
                 prob = round(s[1], round_floats) if round_floats else s[1]
                 graph.add_edge(Edge(state.state_id, s[0].state_id, label=_wrap_label(f'{i}:{prob}')))
+    if automaton_type == 'interval_mdp':
+        round_floats = 4
+        for i in state.transitions.keys():
+            new_state = state.transitions[i]
+            for s in new_state:
+                if not display_same_state_trans and s[0].state_id == state.state_id:
+                    continue
+                prob_lower = round(s[1][0], round_floats) if round_floats else s[1][0]
+                prob_upper = round(s[1][1], round_floats) if round_floats else s[1][1]
+                graph.add_edge(Edge(state.state_id, s[0].state_id, label=_wrap_label(f'{i}:[{prob_lower}, {prob_upper}]')))
     if automaton_type == 'smm':
         for i in state.transitions.keys():
             new_state = state.transitions[i]
@@ -81,6 +92,17 @@ def _add_transition_to_graph(graph, state, automaton_type, display_same_state_tr
                     continue
                 prob = round(s[2], round_floats) if round_floats else s[2]
                 graph.add_edge(Edge(state.state_id, s[0].state_id, label=_wrap_label(f'{i}/{s[1]}:{prob}')))
+    if automaton_type == 'interval_smm':
+        round_floats = 4
+        for i in state.transitions.keys():
+            new_state = state.transitions[i]
+            for s in new_state:
+                if not display_same_state_trans and s[0].state_id == state.state_id:
+                    continue
+                prob_lower = round(s[2][0], round_floats) if round_floats else s[2][0]
+                prob_upper = round(s[2][1], round_floats) if round_floats else s[2][1]
+
+                graph.add_edge(Edge(state.state_id, s[0].state_id, label=_wrap_label(f'{i}/[{prob_lower},{prob_upper}]')))
 
 
 def visualize_automaton(automaton, path="LearnedModel", file_type="pdf", display_same_state_trans=True):
