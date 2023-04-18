@@ -62,7 +62,8 @@ def _sanitize_for_prism(symbol):
         return symbol
 
 
-def mdp_2_prism_format(mdp: Mdp, name: str, output_path=None, is_interval_mdp=False):
+def mdp_2_prism_format(mdp: Mdp, name: str, output_path=None, add_step_counter=False,
+                       stepping_bound=None, is_interval_mdp=False):
     """
     Translates MDP to Prims modelling language.
 
@@ -75,6 +76,7 @@ def mdp_2_prism_format(mdp: Mdp, name: str, output_path=None, is_interval_mdp=Fa
         output_path: output file (Default value = None)
 
     """
+
     module_string = "mdp"
     module_string += os.linesep
     module_string += f"module {name}"
@@ -93,11 +95,20 @@ def mdp_2_prism_format(mdp: Mdp, name: str, output_path=None, is_interval_mdp=Fa
         for inp in source.transitions.keys():
             if source.transitions[inp]:
                 target_strings = \
-                    map(lambda target: _target_string(target, orig_id_to_int_id, is_interval_mdp), source.transitions[inp])
+                    map(lambda target: _target_string(target, orig_id_to_int_id, is_interval_mdp),
+                        source.transitions[inp])
                 target_joined = " + ".join(target_strings)
                 module_string += f"[{_sanitize_for_prism(inp)}] loc={source_id} -> {os.linesep} {target_joined};"
                 module_string += os.linesep
-    module_string += "endmodule"
+    module_string += "endmodule" + os.linesep
+
+    if add_step_counter:
+        stepping_bound = 50 if stepping_bound is None else stepping_bound
+        module_string += 'module StepCounter' + os.linesep + f'steps : [0..{stepping_bound}] init 0;' + os.linesep
+        for input_act in mdp.get_input_alphabet():
+            module_string += f'[{input_act}] true -> (steps\'=min({stepping_bound},steps + 1));' + os.linesep
+        module_string += 'endmodule' + os.linesep
+
     module_string += os.linesep
     # labelling function
     output_to_state_id = defaultdict(list)
@@ -232,6 +243,7 @@ def stop_based_on_confidence(hypothesis, property_based_stopping, print_level=2)
 
     return True
 
+
 def bisimilar(a1: DeterministicAutomaton, a2: DeterministicAutomaton):
     """
     Checks whether the provided automata are bisimilar
@@ -241,9 +253,10 @@ def bisimilar(a1: DeterministicAutomaton, a2: DeterministicAutomaton):
         raise ValueError("tried to check bisimilarity of distinct automaton types")
     supported_automaton_types = (Dfa, MooreMachine, MealyMachine)
     if not isinstance(a1, supported_automaton_types):
-        raise NotImplementedError(f"bisimilarity is not implemented for {a1.__class__.__name__}. Supported: {', '.join(t.__name__ for t in supported_automaton_types)}")
+        raise NotImplementedError(
+            f"bisimilarity is not implemented for {a1.__class__.__name__}. Supported: {', '.join(t.__name__ for t in supported_automaton_types)}")
 
-    to_check : Queue[Tuple[AutomatonState, AutomatonState]] = Queue()
+    to_check: Queue[Tuple[AutomatonState, AutomatonState]] = Queue()
     to_check.put((a1.initial_state, a2.initial_state))
     requirements = dict()
     requirements[(a1.initial_state, a2.initial_state)] = []
@@ -251,8 +264,8 @@ def bisimilar(a1: DeterministicAutomaton, a2: DeterministicAutomaton):
     while not to_check.empty():
         s1, s2 = to_check.get()
         if (isinstance(s1, DfaState)) and s1.is_accepting != s2.is_accepting or \
-           (isinstance(s1, MooreState) and s1.output != s2.output) or \
-           (isinstance(s1, MealyState) and s1.output_fun != s2.output_fun):
+                (isinstance(s1, MooreState) and s1.output != s2.output) or \
+                (isinstance(s1, MealyState) and s1.output_fun != s2.output_fun):
             return requirements[(s1, s2)]
 
         t1, t2 = s1.transitions, s2.transitions
@@ -267,6 +280,7 @@ def bisimilar(a1: DeterministicAutomaton, a2: DeterministicAutomaton):
             if (c1, c2) not in requirements:
                 requirements[(c1, c2)] = requirements[(s1, s2)] + [t]
                 to_check.put((c1, c2))
+
 
 def compare_automata(aut_1: DeterministicAutomaton, aut_2: DeterministicAutomaton, num_cex=10):
     """
@@ -394,6 +408,7 @@ def statistical_model_checking(model, goals, max_num_steps, num_tests=105967):
 
         num of tests containing element of goals set / num_tests
     """
+
     def compute_output_sequence(model, seq):
         model.reset_to_initial()
         observed_outputs = {model.step(i) for i in seq}

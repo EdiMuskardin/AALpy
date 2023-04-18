@@ -130,10 +130,13 @@ class Alergia:
                         r.children_prob[io] = r.input_frequency[io] / outputs_per_input[io[0]]
                     else:
                         from statsmodels.stats.proportion import proportion_confint
-                        lower, upper = proportion_confint(r.input_frequency[io],
-                                                          outputs_per_input[io[0]],
-                                                          1 - self.interval_conf,
-                                                          self.interval_method)
+                        if r.input_frequency[io] == outputs_per_input[io[0]]:
+                            lower, upper = 1, 1
+                        else:
+                            lower, upper = proportion_confint(r.input_frequency[io],
+                                                              outputs_per_input[io[0]],
+                                                              1 - self.interval_conf,
+                                                              self.interval_method)
                         r.children_prob[io] = (lower, upper)
 
     def get_blue_node(self, red_node):

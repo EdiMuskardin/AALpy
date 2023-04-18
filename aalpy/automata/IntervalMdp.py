@@ -62,12 +62,16 @@ def interval_mdp_from_learning_data(learned_model, observation_table, confidence
     for state in learned_model.states:
         for i, node_output_list in state.transitions.items():
             for node, probability in node_output_list:
-                freq_dict = observation_table.T[state.prefix][(i,)]
-                total_sum = sum(freq_dict.values())
+                if probability != 1.:
+                    freq_dict = observation_table.T[state.prefix][(i,)]
+                    total_sum = sum(freq_dict.values())
 
-                lower, upper = proportion_confint(observation_table.T[state.prefix][(i,)][node.output],
-                                                  total_sum, 1-confidence, method)
-                state_dict[state.state_id].transitions[i].append((state_dict[node.state_id], (lower, upper)))
+                    lower, upper = proportion_confint(observation_table.T[state.prefix][(i,)][node.output],
+                                                      total_sum, 1-confidence, method)
+                    state_dict[state.state_id].transitions[i].append((state_dict[node.state_id], (lower, upper)))
+                else:
+                    state_dict[state.state_id].transitions[i].append((state_dict[node.state_id], (1, 1)))
+
 
     return IntervalMdp(state_dict[learned_model.initial_state.state_id], list(state_dict.values()))
 

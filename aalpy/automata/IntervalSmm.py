@@ -91,12 +91,15 @@ def interval_smm_from_learning_data(learned_model, observation_table, confidence
     for state in learned_model.states:
         for i, node_output_list in state.transitions.items():
             for node, output, probability in node_output_list:
-                freq_dict = observation_table.T[state.prefix][(i,)]
-                total_sum = sum(freq_dict.values())
+                if probability != 1.:
+                    freq_dict = observation_table.T[state.prefix][(i,)]
+                    total_sum = sum(freq_dict.values())
 
-                lower, upper = proportion_confint(observation_table.T[state.prefix][(i,)][output],
-                                                  total_sum, 1-confidence, method)
-                state_dict[state.state_id].transitions[i].append((state_dict[node.state_id], output, (lower, upper)))
+                    lower, upper = proportion_confint(observation_table.T[state.prefix][(i,)][output],
+                                                      total_sum, 1-confidence, method)
+                    state_dict[state.state_id].transitions[i].append((state_dict[node.state_id], output, (lower, upper)))
+                else:
+                    state_dict[state.state_id].transitions[i].append((state_dict[node.state_id], output, (1, 1)))
 
     initial_state_id = learned_model.initial_state.state_id
     return IntervalSmm(state_dict[initial_state_id], list(state_dict.values()))
