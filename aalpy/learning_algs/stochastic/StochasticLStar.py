@@ -23,8 +23,10 @@ available_oracles, available_oracles_error_msg = get_available_oracles_and_err_m
 
 def run_stochastic_Lstar(input_alphabet, sul: SUL, eq_oracle: Oracle, target_unambiguity=0.99,
                          min_rounds=10, max_rounds=200, automaton_type='mdp', strategy='normal',
-                         cex_processing=None, samples_cex_strategy=None, stopping_range_dict='strict', custom_oracle=False,
-                         return_data=False, property_based_stopping=None, n_c=20, n_resample=100, print_level=2):
+                         cex_processing=None, samples_cex_strategy=None, stopping_range_dict='strict',
+                         custom_oracle=False,
+                         return_data=False, property_based_stopping=None, n_c=20, n_resample=100,
+                         interval_confidence=None, interval_method=None, print_level=2):
     """
     Learning of Markov Decision Processes and Stochastic Mealy machines based on 'L*-Based Learning of Markov Decision
     Processes' and 'Active Model Learning of Stochastic Reactive Systems' by Tappler et al.
@@ -71,6 +73,10 @@ def run_stochastic_Lstar(input_alphabet, sul: SUL, eq_oracle: Oracle, target_una
 
         n_resample: resampling size (Default value = 100), only used with 'classic' strategy
 
+        interval_confidence: confidence interval
+
+        interval_method: method used for interval computation
+
         print_level: 0 - None, 1 - just results, 2 - current round and hypothesis size, 3 - educational/debug
             (Default value = 2)
 
@@ -82,7 +88,18 @@ def run_stochastic_Lstar(input_alphabet, sul: SUL, eq_oracle: Oracle, target_una
 
     assert samples_cex_strategy in cex_sampling_options or samples_cex_strategy.startswith('random')
     assert cex_processing in cex_processing_options
-    assert automaton_type in {'mdp', 'smm'}
+    assert automaton_type in {'mdp', 'smm', 'interval_mdp', 'interval_smm'}
+
+    interval_automaton_type = None if 'interval' not in automaton_type else automaton_type
+    if interval_automaton_type:
+        automaton_type = 'mdp' if 'mdp' in automaton_type else 'smm'
+        if not interval_confidence:
+            print('Interval confidence not provided: setting it to 0.9')
+            interval_confidence = 0.9
+        if not interval_method:
+            print('Interval computation method not provided, setting it to \'normal\'')
+            interval_method = 'normal'
+
     if not isinstance(stopping_range_dict, dict):
         assert stopping_range_dict in {'strict', 'relaxed'}
     if property_based_stopping:
@@ -211,6 +228,11 @@ def run_stochastic_Lstar(input_alphabet, sul: SUL, eq_oracle: Oracle, target_una
         'observation_table': observation_table
     }
 
+    if interval_automaton_type == 'interval_mdp':
+        hypothesis = hypothesis.to_interval_mdp(observation_table, confidence=interval_confidence, method=interval_method)
+    elif interval_automaton_type == 'interval_smm':
+        hypothesis = hypothesis.to_interval_smm(observation_table, confidence=interval_confidence, method=interval_method)
+
     if print_level > 0:
         print_learning_info(info)
 
@@ -218,4 +240,3 @@ def run_stochastic_Lstar(input_alphabet, sul: SUL, eq_oracle: Oracle, target_una
         return hypothesis, info
 
     return hypothesis
-
