@@ -4,31 +4,33 @@ from aalpy.SULs import MdpSUL
 from aalpy.automata import interval_smm_from_learning_data, interval_mdp_from_learning_data, IntervalSmm
 from aalpy.learning_algs import run_stochastic_Lstar, run_Alergia
 from aalpy.oracles import RandomWordEqOracle
-from aalpy.utils import get_faulty_coffee_machine_MDP, get_small_gridworld, load_automaton_from_file
+from aalpy.utils import get_faulty_coffee_machine_MDP, get_small_gridworld, load_automaton_from_file, get_small_pomdp
 from aalpy.utils import mdp_2_prism_format
-# coffee_m = load_automaton_from_file('DotModels/MDPs/first_grid.dot', 'mdp')
-coffee_m = get_faulty_coffee_machine_MDP()
 
+model_under_learning = load_automaton_from_file('DotModels/MDPs/first_grid.dot', 'mdp')
 
-sul = MdpSUL(coffee_m)
-alphabet = coffee_m.get_input_alphabet()
+#model_under_learning = get_faulty_coffee_machine_MDP()
+#model_under_learning = get_small_pomdp()
+
+sul = MdpSUL(model_under_learning)
+alphabet = model_under_learning.get_input_alphabet()
 eq_oracle = RandomWordEqOracle(alphabet, sul, num_walks=100)
 
-learning_type = 'interval_mdp'
 
-learned_model = run_stochastic_Lstar(alphabet, sul, eq_oracle, automaton_type=learning_type,
+learned_model = run_stochastic_Lstar(alphabet, sul, eq_oracle, automaton_type='interval_mdp',
                                      interval_confidence=0.9, interval_method='normal',)
 learned_model.visualize()
+exit()
 
 if isinstance(learned_model, IntervalSmm):
     learned_model = learned_model.to_interval_mdp()
 
-prism_string = mdp_2_prism_format(learned_model, 'interval_mdp', is_interval_mdp=True)
+prism_string = mdp_2_prism_format(learned_model, 'interval_mdp', is_interval_mdp=True, output_path='interval_mdp.prism')
 print(prism_string)
 
 exit()
 
-sul = MdpSUL(coffee_m)
+sul = MdpSUL(model_under_learning)
 
 data = []
 for _ in range(100000):
