@@ -7,8 +7,8 @@ from aalpy.oracles import RandomWordEqOracle
 from aalpy.utils import get_faulty_coffee_machine_MDP, get_small_gridworld, load_automaton_from_file, get_small_pomdp
 from aalpy.utils import mdp_2_prism_format
 
-model_under_learning = load_automaton_from_file('DotModels/MDPs/first_grid.dot', 'mdp')
-#model_under_learning = get_faulty_coffee_machine_MDP()
+#model_under_learning = load_automaton_from_file('DotModels/MDPs/first_grid.dot', 'mdp')
+model_under_learning = get_faulty_coffee_machine_MDP()
 #model_under_learning = get_small_pomdp()
 
 sul = MdpSUL(model_under_learning)
@@ -16,7 +16,10 @@ alphabet = model_under_learning.get_input_alphabet()
 eq_oracle = RandomWordEqOracle(alphabet, sul, num_walks=100)
 
 learned_model = run_stochastic_Lstar(alphabet, sul, eq_oracle, automaton_type='interval_mdp',
-                                     interval_confidence=0.9, interval_method='normal',)
+                                     interval_confidence=0.9, interval_method='wilson',)
+
+learned_model.visualize()
+exit()
 
 if isinstance(learned_model, IntervalSmm):
     learned_model = learned_model.to_interval_mdp()

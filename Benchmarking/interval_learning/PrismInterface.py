@@ -59,7 +59,7 @@ class Scheduler:
 
 class PrismInterface:
     def __init__(self, destination, model, num_steps=None, operation='Pmax', add_step_counter=True, stepping_bound=20):
-        assert operation in {'Pmax', 'Pmaxmin', 'Pmaxmax'}
+        assert operation in {'Pmax', 'Pmaxmin', 'Pmaxmax', 'Pminmax', 'Pminmin'}
         self.tmp_dir = Path("tmp_prism")
         self.destination = destination
         self.model = model
@@ -76,16 +76,20 @@ class PrismInterface:
         mdp_2_prism_format(self.model, "porl", output_path=self.tmp_mdp_file, is_interval_mdp=operation != 'Pmax',
                            add_step_counter=add_step_counter, stepping_bound=stepping_bound)
 
+        self.dot_file =  (self.tmp_dir.absolute() / f"sched_{destination}.dot")
         self.adv_file_name = (self.tmp_dir.absolute() / f"sched_{destination}.adv")
         self.concrete_model_name = str(self.tmp_dir.absolute() / f"concrete_model_{destination}")
         self.property_val = 0
         self.call_prism()
-        self.parser = PrismSchedulerParser(self.adv_file_name, self.concrete_model_name + ".lab",
+        self.parser = PrismSchedulerParser(self.adv_file_name if self.operation == 'Pmax' else self.dot_file,
+                                           self.concrete_model_name + ".lab",
                                            self.concrete_model_name + ".tra")
         self.scheduler = Scheduler(self.parser.initial_state, self.parser.transition_dict,
                                    self.parser.label_dict, self.parser.scheduler_dict)
+        os.remove(self.dot_file)
         os.remove(self.tmp_mdp_file)
-        os.remove(self.adv_file_name)
+        if os.path.exists(self.adv_file_name):
+            os.remove(self.adv_file_name)
         os.remove(self.concrete_model_name + ".lab")
         os.remove(self.concrete_model_name + ".tra")
 
@@ -122,7 +126,7 @@ class PrismInterface:
         file_abs_path = path.abspath(self.tmp_mdp_file)
         proc = subprocess.Popen(
             [aalpy.paths.path_to_prism, file_abs_path, "-pf", self.prism_property, "-noprob1", "-exportadv",
-             self.adv_file_name, "-exportmodel", f"{self.concrete_model_name}.all"],
+             self.adv_file_name, "-exportstrat", self.dot_file, "-exportmodel", f"{self.concrete_model_name}.all"],
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=path_to_prism_file)
         out = proc.communicate()[0]
         out = out.decode('utf-8').splitlines()
@@ -155,7 +159,7 @@ class PrismSchedulerParser:
             self.transition_file_content = f.readlines()
         self.label_dict = self.create_labels()
         self.transition_dict = self.create_transitions()
-        self.scheduler_dict = self.parse_scheduler()
+        self.scheduler_dict = self.parse_scheduler(is_dot_file='.dot' in str(scheduler_file))
         self.initial_state = next(filter(lambda e: "init" in e[1], self.label_dict.items()))[0]
         self.actions = set()
         for l in self.transition_dict.values():
@@ -189,21 +193,28 @@ class PrismSchedulerParser:
             split_line = t.split(" ")
             source_state = int(split_line[0])
             target_state = int(split_line[2])
-            prob = float(split_line[3])
+            prob = float(split_line[3]) if '[' not in split_line[3] else split_line[3]
             action = split_line[4].strip()
             transitions[source_state].append((prob, action, target_state))
         return transitions
 
-    def parse_scheduler(self):
-        header_line = self.scheduler_file_content[0]
-        transition_lines = self.scheduler_file_content[1:]
+    def parse_scheduler(self, is_dot_file):
         scheduler = dict()
-        for t in transition_lines:
-            split_line = t.split(" ")
-            source_state = int(split_line[0])
-            action = split_line[3].strip()
-            if source_state in scheduler:
-                assert action == scheduler[source_state]
-            else:
-                scheduler[source_state] = action
+
+        if not is_dot_file:
+            header_line = self.scheduler_file_content[0]
+            transition_lines = self.scheduler_file_content[1:]
+            for t in transition_lines:
+                split_line = t.split(" ")
+                source_state = int(split_line[0])
+                action = split_line[3].strip()
+                if source_state in scheduler:
+                    assert action == scheduler[source_state]
+                else:
+                    scheduler[source_state] = action
+        else:
+            for t in self.scheduler_file_content:
+                split_line = t.split(":")
+                scheduler[int(split_line[0])] = split_line[1].strip()
+
         return scheduler
