@@ -64,22 +64,22 @@ class Mdp(Automaton):
         from aalpy.automata import interval_mdp_from_learning_data
         return interval_mdp_from_learning_data(self, observation_table, confidence, method)
 
-# def to_interval_mdp(self, confidence=0.9, sample_size=100, method='normal'):
-    #     from statsmodels.stats.proportion import proportion_confint
-    #     from aalpy.automata.IntervalMdp import IntervalMdpState, IntervalMdp
-    #
-    #     # copy mdp
-    #     state_dict = dict()
-    #     for state in self.states:
-    #         state_dict[state.state_id] = IntervalMdpState(state.state_id, output=state.output)
-    #
-    #     for state in self.states:
-    #         for i, node_output_list in state.transitions.items():
-    #             for node, probability in node_output_list:
-    #                 if probability != 1.:
-    #                     lower, upper = proportion_confint(int(sample_size * probability), sample_size, confidence, method)
-    #                     state_dict[state.state_id].transitions[i].append((state_dict[node.state_id], (lower, upper)))
-    #                 else:
-    #                     state_dict[state.state_id].transitions[i].append((state_dict[node.state_id], (0, 1)))
-    #
-    #     return IntervalMdp(state_dict[self.initial_state.state_id], list(state_dict.values()))
+    def to_interval_mdp_2(self, confidence=0.9, sample_size=300, method='normal'):
+            from statsmodels.stats.proportion import proportion_confint
+            from aalpy.automata.IntervalMdp import IntervalMdpState, IntervalMdp
+
+            # copy mdp
+            state_dict = dict()
+            for state in self.states:
+                state_dict[state.state_id] = IntervalMdpState(state.state_id, output=state.output)
+
+            for state in self.states:
+                for i, node_output_list in state.transitions.items():
+                    for node, probability in node_output_list:
+                        if probability != 1.:
+                            lower, upper = proportion_confint(int(sample_size * probability), sample_size, confidence, method)
+                            state_dict[state.state_id].transitions[i].append((state_dict[node.state_id], (lower, upper)))
+                        else:
+                            state_dict[state.state_id].transitions[i].append((state_dict[node.state_id], (1, 1)))
+
+            return IntervalMdp(state_dict[self.initial_state.state_id], list(state_dict.values()))

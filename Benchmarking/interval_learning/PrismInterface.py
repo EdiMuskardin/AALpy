@@ -61,10 +61,11 @@ class PrismInterface:
     def __init__(self, destination, model, num_steps=None, operation='Pmax', add_step_counter=True, stepping_bound=20):
         assert operation in {'Pmax', 'Pmaxmin', 'Pmaxmax', 'Pminmax', 'Pminmin'}
         self.tmp_dir = Path("tmp_prism")
+        self.operation = operation
+        self.is_interval_mdp = operation != 'Pmax'
         self.destination = destination
         self.model = model
         self.num_steps = num_steps
-        self.operation = operation
         if type(destination) != list:
             destination = [destination]
         destination = "_or_".join(destination)
@@ -81,9 +82,10 @@ class PrismInterface:
         self.concrete_model_name = str(self.tmp_dir.absolute() / f"concrete_model_{destination}")
         self.property_val = 0
         self.call_prism()
-        self.parser = PrismSchedulerParser(self.adv_file_name if self.operation == 'Pmax' else self.dot_file,
+        self.parser = PrismSchedulerParser(self.adv_file_name if not self.is_interval_mdp else self.dot_file,
                                            self.concrete_model_name + ".lab",
-                                           self.concrete_model_name + ".tra")
+                                           self.concrete_model_name + ".tra",
+                                           use_dot=self.is_interval_mdp)
         self.scheduler = Scheduler(self.parser.initial_state, self.parser.transition_dict,
                                    self.parser.label_dict, self.parser.scheduler_dict)
         os.remove(self.dot_file)
@@ -117,9 +119,9 @@ class PrismInterface:
                 destination_in_model = True
                 break
 
-        if not destination_in_model:
-            print('SCHEDULER NOT COMPUTED')
-            return self.property_val
+        # if not destination_in_model:
+        #     print('SCHEDULER NOT COMPUTED')
+        #     return self.property_val
 
         prism_file = aalpy.paths.path_to_prism.split('/')[-1]
         path_to_prism_file = aalpy.paths.path_to_prism[:-len(prism_file)]
@@ -131,7 +133,7 @@ class PrismInterface:
         out = proc.communicate()[0]
         out = out.decode('utf-8').splitlines()
         for line in out:
-            # print(line)
+            #print(line)
             if not line:
                 continue
             if 'Syntax error' in line:
@@ -140,7 +142,7 @@ class PrismInterface:
                 if "Result:" in line:
                     end_index = len(line) if "(" not in line else line.index("(") - 1
                     try:
-                        self.property_val = float(line[len("Result: "): end_index])
+                        self.property_val = round(float(line[len("Result: "): end_index]), 4)
                         # if result_val < 1.0:
                         #    print(f"We cannot reach with absolute certainty, probability is {result_val}")
                     except:
@@ -150,7 +152,7 @@ class PrismInterface:
 
 
 class PrismSchedulerParser:
-    def __init__(self, scheduler_file, label_file, transition_file):
+    def __init__(self, scheduler_file, label_file, transition_file, use_dot):
         with open(scheduler_file, "r") as f:
             self.scheduler_file_content = f.readlines()
         with open(label_file, "r") as f:
@@ -159,7 +161,7 @@ class PrismSchedulerParser:
             self.transition_file_content = f.readlines()
         self.label_dict = self.create_labels()
         self.transition_dict = self.create_transitions()
-        self.scheduler_dict = self.parse_scheduler(is_dot_file='.dot' in str(scheduler_file))
+        self.scheduler_dict = self.parse_scheduler(is_dot_file=use_dot)
         self.initial_state = next(filter(lambda e: "init" in e[1], self.label_dict.items()))[0]
         self.actions = set()
         for l in self.transition_dict.values():
@@ -200,7 +202,6 @@ class PrismSchedulerParser:
 
     def parse_scheduler(self, is_dot_file):
         scheduler = dict()
-
         if not is_dot_file:
             header_line = self.scheduler_file_content[0]
             transition_lines = self.scheduler_file_content[1:]
@@ -208,7 +209,7 @@ class PrismSchedulerParser:
                 split_line = t.split(" ")
                 source_state = int(split_line[0])
                 action = split_line[3].strip()
-                if source_state in scheduler:
+                if source_state in scheduler.keys():
                     assert action == scheduler[source_state]
                 else:
                     scheduler[source_state] = action
