@@ -1,5 +1,6 @@
 import random
 import sys
+from collections import defaultdict
 
 sys.path.append('../..')
 
@@ -12,6 +13,7 @@ from aalpy.learning_algs import run_stochastic_Lstar, run_Alergia
 from aalpy.oracles import RandomWordEqOracle
 from aalpy.utils import get_faulty_coffee_machine_MDP, get_small_gridworld, load_automaton_from_file, get_small_pomdp
 from aalpy.utils import mdp_2_prism_format
+from matplotlib import pyplot as plt
 
 import aalpy.paths
 
@@ -49,7 +51,7 @@ def evaluate_scheduler(scheduler, model, goal, num_steps, num_tests=26492, ):
             # print(action)
             if action is None:
                 break
-            output = step_in_model(model, action, friendliness=-1)
+            output = step_in_model(model, action, friendliness=0)
             # output = model.step(action)
             # print(output)
             reached_state = scheduler.step_to(action, output)
@@ -71,8 +73,14 @@ goal_states = {'first_grid': 'goal', 'second_grid': 'goal', 'tcp': 'crash', 'slo
 steps_dict = {'first_grid': [8, 9, 10, 11, 12, 13],
               'second_grid': [11, 12, 13, 15, 17],
               'tcp': [5, 11, 17],
-              'slot_machine': [4, 5, ],
+              'slot_machine': [4, 5, 7],
               'shared_coin': [30, 40, 45]}
+
+max_learning_rounds_dict = {'first_grid': 15,
+                            'second_grid': 25,
+                            'tcp': 20,
+                            'slot_machine': 15,
+                            'shared_coin': 30}
 
 model_under_learning = load_automaton_from_file(f'../../DotModels/MDPs/{experiment}.dot', 'mdp')
 
@@ -87,7 +95,7 @@ learning_type = 'smm'
 learned_model, data = run_stochastic_Lstar(alphabet, sul, eq_oracle, automaton_type=learning_type,
                                            target_unambiguity=0.8,
                                            min_rounds=5,
-                                           max_rounds=100,
+                                           max_rounds=max_learning_rounds_dict[experiment],
                                            return_data=True)
 
 # learned_model = model_under_learning
@@ -100,45 +108,59 @@ else:
                                                          confidence=confidence).to_interval_mdp()
     learned_model = learned_model.to_mdp()
 
+experiment_results = defaultdict(list)
+scheduler_types = ['Pmax', 'Pmaxmin', 'Pmaxmax']
+
+print(f'Experiment: {experiment}, Interval Confidence {confidence}')
 for step_nums in steps_dict[experiment]:
-    #######################################
 
     goal_state = goal_states[experiment]
     num_steps = step_nums
 
-    correct_property_val = PrismInterface(goal_state, model_under_learning, num_steps=num_steps, operation='Pmax',
-                                          add_step_counter=True, stepping_bound=20).property_val
-
-    prism_interface_mdp = PrismInterface(goal_state, learned_model, num_steps=num_steps, operation='Pmax',
-                                         add_step_counter=True, stepping_bound=20)
-    normal_scheduler = prism_interface_mdp.scheduler
-
     print('--------------------------------')
     print(f'Max step number to reach {goal_states[experiment]}: {step_nums}')
     print('Testing schedulers on 25000 episodes:')
-    normal_scheduler_res = evaluate_scheduler(normal_scheduler, model_under_learning, goal_state, num_steps=num_steps)
-    # print('Normal scheduler (Pmax) property        :', prism_interface_mdp.property_val)
+
+    correct_property_val = PrismInterface(goal_state, model_under_learning, num_steps=num_steps, operation='Pmax',
+                                          add_step_counter=True, stepping_bound=20).property_val
+
     print('Ground truth (Pmax) property value      :', correct_property_val)
-    print('Normal scheduler (Pmax) evaluation      :', normal_scheduler_res)
 
-    #######################################
+    experiment_results[num_steps].append(('GT Pmax', correct_property_val))
 
-    prism_interface_mdp = PrismInterface(goal_state, learned_interval_mdp, num_steps=num_steps, operation='Pmaxmin',
-                                         add_step_counter=True, stepping_bound=20)
-    interval_scheduler = prism_interface_mdp.scheduler
+    for s in scheduler_types:
+        prism_interface_mdp = PrismInterface(goal_state,
+                                             learned_model if s == 'Pmax' else learned_interval_mdp,
+                                             num_steps=num_steps, operation=s,
+                                             add_step_counter=True, stepping_bound=step_nums + 2)
+        scheduler = prism_interface_mdp.scheduler
 
-    interval_scheduler_res = evaluate_scheduler(interval_scheduler, model_under_learning, goal_state,
-                                                num_steps=num_steps)
-    # print('Interval scheduler (Pmaxmin) property   :', prism_interface_mdp.property_val)
-    print('Interval scheduler (Pmaxmin) evaluation :', interval_scheduler_res)
+        scheduler_result = evaluate_scheduler(scheduler,
+                                              model_under_learning,
+                                              goal_state,
+                                              num_steps=num_steps)
+        #        scheduler_result = prism_interface_mdp.property_val
 
-    #######################################
+        # print(f'Normal scheduler ({s}) property        :', prism_interface_mdp.property_val)
+        print(f'Normal scheduler ({s}) evaluation \t:', scheduler_result)
+        experiment_results[num_steps].append((s, scheduler_result))
 
-    prism_interface_mdp = PrismInterface(goal_state, learned_interval_mdp, num_steps=num_steps, operation='Pmaxmax',
-                                         add_step_counter=True, stepping_bound=20)
-    interval_scheduler = prism_interface_mdp.scheduler
+plot = True
+if plot:
+    x_line = list(experiment_results.keys())
+    single_step_exp = list(experiment_results.values())[0]
+    y_line_labels = [r[0] for r in single_step_exp]
+    y_lines = []
+    for i in range(len(single_step_exp)):
+        y_lines.append([r[i][1] for r in experiment_results.values()])
 
-    interval_scheduler_res = evaluate_scheduler(interval_scheduler, model_under_learning, goal_state,
-                                                num_steps=num_steps)
-    # print('Interval scheduler (Pmaxmax) property   :', prism_interface_mdp.property_val)
-    print('Interval scheduler (Pmaxmax) evaluation :', interval_scheduler_res)
+    for index, y in enumerate(y_lines):
+        plt.plot(x_line, y, label=f'{y_line_labels[index]}')
+
+    plt.xlabel('Number of steps')
+    plt.ylabel(f'Probability to reach {goal_states[experiment]}')
+    plt.title(f'{experiment}')
+    plt.legend()
+    # plt.show()
+    plt.savefig(f'{experiment}_{confidence}.pdf')
+    print(f'Results saved to {experiment}_{confidence}.pdf')

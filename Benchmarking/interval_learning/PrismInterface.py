@@ -133,7 +133,7 @@ class PrismInterface:
         out = proc.communicate()[0]
         out = out.decode('utf-8').splitlines()
         for line in out:
-            #print(line)
+            # print(line)
             if not line:
                 continue
             if 'Syntax error' in line:

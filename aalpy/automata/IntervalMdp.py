@@ -68,6 +68,7 @@ def interval_mdp_from_learning_data(learned_model, observation_table, confidence
 
                     lower, upper = proportion_confint(observation_table.T[state.prefix][(i,)][node.output],
                                                       total_sum, 1-confidence, method)
+                    lower = upper / 10000 if lower == 0 else lower
                     state_dict[state.state_id].transitions[i].append((state_dict[node.state_id], (lower, upper)))
                 else:
                     state_dict[state.state_id].transitions[i].append((state_dict[node.state_id], (1, 1)))
