@@ -1,0 +1,29 @@
+mdp
+
+const double win = 0.8;
+const int n = 6;
+
+module bet
+
+	money : [0..(n+1)*10] init 10;
+	steps : [0..n+1] init 0; // +1 for terminal state
+ 
+	[bet0]  steps < n & money >= 0 -> 1 : (money'=money) & (steps'=steps+1);
+	[bet1]  steps < n & money >= 1 & money <= n*10 -> win : (money'=money+1) & (steps'=steps+1) + 1-win : (money'=money-1) & (steps'=steps+1);
+	[bet2]  steps < n & money >= 2 & money <= n*10 -> win : (money'=money+2) & (steps'=steps+1) + 1-win : (money'=money-2) & (steps'=steps+1);
+	[bet5]  steps < n & money >= 5 & money <= n*10 -> win : (money'=money+5) & (steps'=steps+1) + 1-win : (money'=money-5) & (steps'=steps+1);
+	[bet10] steps < n & money >=10 & money <= n*10 -> win : (money'=money+10) & (steps'=steps+1) + 1-win : (money'=money-10) & (steps'=steps+1);
+
+	[end] steps = n -> 1: (steps'=n+1);
+	[end] steps = n+1 -> 1: true;
+
+endmodule
+
+rewards
+	steps < n : 0;
+	steps = n : money;
+	steps = n+1 : 0;	
+
+endrewards
+
+label "done" = steps = n+1;

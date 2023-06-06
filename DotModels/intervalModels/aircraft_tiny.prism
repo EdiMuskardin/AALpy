@@ -1,0 +1,49 @@
+mdp
+
+
+const int maxX = 5;
+const int maxY = 2;
+const double r = 0.8; // pilot response factor
+
+const double p = 0.4; // prob of adversary moving up or down, ensure 2p <= 1 
+
+
+formula xclose = (x-ax >= 0 & x-ax < 3) | (ax-x >= 0 & ax-x < 3);
+formula yclose = (y-ay >= 0 & y-ay < 2) | (ay-y >= 0 & ay-y < 2);
+formula collision = xclose & yclose;
+
+module aircraft
+
+	x : [0..maxX] init 0;
+	y : [0..maxY] init 1;
+
+
+	[down] x < maxX -> r : (y'=max(y-1,0)) & (x'=x+1) + 1-r : (y'=y) & (x'=x+1);
+	[up] x < maxX -> r : (y'=min(y+1,maxY)) & (x'=x+1)  + 1-r : (y'=y) & (x'=x+1);
+	[stay] x < maxX -> (y'=y) & (x'=x+1);
+
+	[down] x = maxX -> true;
+	[up] x = maxX -> true;
+	[stay] x = maxX -> true;
+
+endmodule
+
+
+module adversary
+	
+	ax : [0..maxX] init maxX;
+	ay : [0..maxY] init 1;
+
+	[up] ax > 0 -> p : (ay'=max(ay-1,0)) & (ax'=ax-1) + p : (ay'=min(ay+1,maxY)) & (ax'=ax-1) + 1-2*p : (ay'=ay) & (ax'=ax-1);
+	[down] ax > 0 -> p : (ay'=max(ay-1,0)) & (ax'=ax-1) + p : (ay'=min(ay+1,maxY)) & (ax'=ax-1) + 1-2*p : (ay'=ay) & (ax'=ax-1);
+	[stay] ax > 0 -> p : (ay'=max(ay-1,0)) & (ax'=ax-1) + p : (ay'=min(ay+1,maxY)) & (ax'=ax-1) + 1-2*p : (ay'=ay) & (ax'=ax-1);
+	[up] ax = 0 -> true;
+	[down] ax = 0 -> true;
+	[stay] ax = 0 -> true;
+
+endmodule
+
+
+label "goal" = x=maxX;
+label "x_close" = xclose;
+label "y_close" = yclose;

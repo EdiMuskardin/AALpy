@@ -1,0 +1,4 @@
+0="init" 1="deadlock" 2="goal" 3="state0" 4="state1"
+0: 0 3
+1: 4
+2: 1 2
