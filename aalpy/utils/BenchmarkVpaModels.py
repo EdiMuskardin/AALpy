@@ -1,10 +1,9 @@
-import ast
 import random
 
 from aalpy.automata.Vpa import Vpa, VpaAlphabet
 
 
-def vpa_for_L1():
+def vpa_L1():
     # we always ensure that n >= 1
 
     call_set = ['a']
@@ -14,15 +13,15 @@ def vpa_for_L1():
     input_alphabet = VpaAlphabet(internal_alphabet=internal_set, call_alphabet=call_set, return_alphabet=return_set)
 
     state_setup = {
-        "q0": (False, {"a": [("q1", 'push', "a")], "b": [(Vpa.error_state.state_id, None, None)]}),
+        "q0": (False, {"a": [("q1", 'push', "a")], }),
         "q1": (False, {"a": [("q1", 'push', "a")], "b": [("q2", 'pop', "a")]}),
-        "q2": (True, {"a": [(Vpa.error_state.state_id, None, None)], "b": [("q2", 'pop', "a")]}),
+        "q2": (True, {"b": [("q2", 'pop', "a")]}),
     }
     vpa = Vpa.from_state_setup(state_setup, init_state_id="q0", input_alphabet=input_alphabet)
     return vpa
 
 
-def vpa_for_L2():
+def vpa_L2():
     call_set = ['a', 'b']
     return_set = ['c', 'd']
     internal_set = []
@@ -30,15 +29,11 @@ def vpa_for_L2():
     input_alphabet = VpaAlphabet(internal_alphabet=internal_set, call_alphabet=call_set, return_alphabet=return_set)
 
     state_setup = {
-        "q0": (False, {"a": [("q1", 'push', "a")], "b": [("q1", 'push', "b")],
-                       "c": [(Vpa.error_state.state_id, None, None)],
-                       "d": [(Vpa.error_state.state_id, None, None)]}),
+        "q0": (False, {"a": [("q1", 'push', "a")], "b": [("q1", 'push', "b")], }),
         "q1": (False, {"a": [("q1", 'push', "a")], "b": [("q1", 'push', "b")],
                        "c": [("q2", 'pop', "a"), ("q2", 'pop', "b")],
                        "d": [("q2", 'pop', "a"), ("q2", 'pop', "b")]}),
-        "q2": (True, {"a": [(Vpa.error_state.state_id, None, None)],
-                      "b": [(Vpa.error_state.state_id, None, None)],
-                      "c": [("q2", 'pop', "a"), ("q2", 'pop', "b")],
+        "q2": (True, {"c": [("q2", 'pop', "a"), ("q2", 'pop', "b")],
                       "d": [("q2", 'pop', "a"), ("q2", 'pop', "b")]}),
     }
     vpa = Vpa.from_state_setup(state_setup, init_state_id="q0", input_alphabet=input_alphabet)
@@ -74,7 +69,7 @@ def vpa_for_L3():
     return vpa
 
 
-def vpa_for_L4():
+def vpa_L3():
     call_set = ['a', 'b']
     return_set = ['c', 'd']
     internal_set = []
@@ -82,12 +77,12 @@ def vpa_for_L4():
     input_alphabet = VpaAlphabet(internal_alphabet=internal_set, call_alphabet=call_set, return_alphabet=return_set)
 
     state_setup = {
-        "q0": (False, {"a": [("q01", 'push', "a")], "b": [(Vpa.error_state.state_id, None, None)]}),
-        "q01": (False, {"b": [("q1", 'push', "b")], "a": [(Vpa.error_state.state_id, None, None)]}),
+        "q0": (False, {"a": [("q01", 'push', "a")], }),
+        "q01": (False, {"b": [("q1", 'push', "b")], }),
 
-        "q1": (False, {"a": [("q11", 'push', "a")], "b": [(Vpa.error_state.state_id, None, None)],
+        "q1": (False, {"a": [("q11", 'push', "a")],
                        "c": [("q21", 'pop', "b")]}),
-        "q11": (False, {"b": [("q1", 'push', "b")], "a": [(Vpa.error_state.state_id, None, None)]}),
+        "q11": (False, {"b": [("q1", 'push', "b")], }),
         "q21": (False, {"d": [("q2", 'pop', "a")]}),
         "q2": (True, {"c": [("q21", 'pop', "b")]}),
     }
@@ -95,30 +90,7 @@ def vpa_for_L4():
     return vpa
 
 
-def vpa_for_L5():
-    call_set = ['a', 'b', 'c']
-    return_set = ['d', 'e', 'f']
-    internal_set = []
-
-    input_alphabet = VpaAlphabet(internal_alphabet=internal_set, call_alphabet=call_set, return_alphabet=return_set)
-
-    state_setup = {
-        "q0": (False, {"a": [("q01", 'push', "a")]}),
-        "q01": (False, {"b": [("q02", 'push', "b")]}),
-        "q02": (False, {"c": [("q1", 'push', "c")]}),
-        "q1": (False, {"a": [("q11", 'push', "a")],
-                       "d": [("q21", 'pop', "c")]}),
-        "q11": (False, {"b": [("q12", 'push', "b")]}),
-        "q12": (False, {"c": [("q1", 'push', "c")]}),
-        "q21": (False, {"e": [("q22", 'pop', "b")]}),
-        "q22": (False, {"f": [("q2", 'pop', "a")]}),
-        "q2": (True, {"d": [("q21", 'pop', "c")]}),
-    }
-    vpa = Vpa.from_state_setup(state_setup, init_state_id="q0", input_alphabet=input_alphabet)
-    return vpa
-
-
-def vpa_for_L7():
+def vpa_L4():
     # Dyck order 2
 
     call_set = ['(', '[']
@@ -141,7 +113,7 @@ def vpa_for_L7():
     return vpa
 
 
-def vpa_for_L8():
+def vpa_L6():
     # Dyck order 3
 
     call_set = ['(', '[', '{']
@@ -167,7 +139,7 @@ def vpa_for_L8():
     return vpa
 
 
-def vpa_for_L9():
+def vpa_L8():
     # Dyck order 4
 
     call_set = ['(', '[', '{', '<']
@@ -196,63 +168,7 @@ def vpa_for_L9():
     return vpa
 
 
-def vpa_for_L10():
-    # RE Dyck order 1
-
-    call_set = ['a']
-    return_set = ['v']
-    internal_set = ['b', 'c', 'd', 'e', 'w', 'x', 'y', 'z']
-
-    input_alphabet = VpaAlphabet(internal_alphabet=internal_set, call_alphabet=call_set, return_alphabet=return_set)
-
-    state_setup = {
-        "q0": (False, {"a": [("qa", 'push', "a")],
-                       }),
-        "qa": (False, {"b": [("qb", None, None)],
-                       }),
-        "qb": (False, {"c": [("qc", None, None)],
-                       }),
-        "qc": (False, {"d": [("qd", None, None)],
-                       }),
-        "qd": (False, {"e": [("q1", None, None)],
-                       }),
-        "q1": (True, {"a": [("qa", 'push', "a")],
-                      "v": [("qv", 'pop', "a")]}),
-        "qv": (False, {"w": [("qw", None, None)]}),
-        "qw": (False, {"x": [("qx", None, None)]}),
-        "qx": (False, {"y": [("qy", None, None)]}),
-        "qy": (False, {"z": [("q1", None, None)]})
-    }
-    vpa = Vpa.from_state_setup(state_setup, init_state_id="q0", input_alphabet=input_alphabet)
-    return vpa
-
-
-def vpa_for_L11():
-    # RE Dyck order 1
-
-    call_set = ['c1', 'c2']
-    return_set = ['r1', 'r2']
-    internal_set = ['i1', 'i2']
-
-    input_alphabet = VpaAlphabet(internal_alphabet=internal_set, call_alphabet=call_set, return_alphabet=return_set)
-
-    state_setup = {
-        "q0": (False, {"c1": [("qa", 'push', "c1")],
-                       "c2": [("q1", 'push', "c2")],
-                       }),
-        "qa": (False, {"i1": [("q1", None, None)],
-                       }),
-        "q1": (True, {"c1": [("qa", 'push', "c1")],
-                      "c2": [("q1", 'push', "c2")],
-                      "r1": [("qd", 'pop', "c1"), ("qd", 'pop', "c2")],
-                      "r2": [("q1", 'pop', "c1"), ("q1", 'pop', "c2")]}),
-        "qd": (False, {"i2": [("q1", None, None)]})
-    }
-    vpa = Vpa.from_state_setup(state_setup, init_state_id="q0", input_alphabet=input_alphabet)
-    return vpa
-
-
-def vpa_for_L12():
+def vpa_L9():
     # Dyck order 2 (single-nested)
 
     call_set = ['(', '[']
@@ -278,7 +194,7 @@ def vpa_for_L12():
     return vpa
 
 
-def vpa_for_L13():
+def vpa_L10():
     # Dyck order 1
 
     call_set = ['(']
@@ -304,7 +220,7 @@ def vpa_for_L13():
     return vpa
 
 
-def vpa_for_L14():
+def vpa_L11():
     # Dyck order 2
 
     call_set = ['(', '[']
@@ -333,7 +249,7 @@ def vpa_for_L14():
     return vpa
 
 
-def vpa_for_L15():
+def vpa_L12():
     # Dyck order 1
 
     call_set = ['(']
@@ -381,7 +297,35 @@ def vpa_for_L16():
     return vpa
 
 
+def vpa_for_odd_parentheses():
+    # VPA for accepting only odd number of fully balanced parentheses
+    # It accepts patterns like () and ((()))), but rejects odd pairs or multiple groups
+
+    call_set = ['(']
+    return_set = [')']
+    internal_set = []
+
+    input_alphabet = VpaAlphabet(internal_alphabet=internal_set, call_alphabet=call_set, return_alphabet=return_set)
+
+    state_setup = {
+        "q0": (False, {
+            "(": [("q1", 'push', "(")]
+        }),
+        "q1": (False, {
+            "(": [("q0", 'push', "(")],
+            ")": [("q2", 'pop', "(")]
+        }),
+        "q2": (True, {
+            ")": [("q2", 'pop', "(")]
+        }),
+    }
+
+    vpa = Vpa.from_state_setup(state_setup, init_state_id="q0", input_alphabet=input_alphabet)
+    return vpa
+
+
 def gen_arithmetic_data(num_sequances=3000, min_seq_len=2, max_seq_len=8):
+    import ast
     from aalpy.base import SUL
     from aalpy.utils import convert_i_o_traces_for_RPNI
 
@@ -415,7 +359,7 @@ def gen_arithmetic_data(num_sequances=3000, min_seq_len=2, max_seq_len=8):
 
     sul = ArithmeticSUL()
 
-    alphabet = VpaAlphabet(internal_alphabet=['1', '+',], call_alphabet=['(', ], return_alphabet=[')', ])
+    alphabet = VpaAlphabet(internal_alphabet=['1', '+', ], call_alphabet=['(', ], return_alphabet=[')', ])
     merged_alphabet = alphabet.get_merged_alphabet()
     data = []
     while len(data) < num_sequances:
@@ -431,7 +375,90 @@ def gen_arithmetic_data(num_sequances=3000, min_seq_len=2, max_seq_len=8):
     return rpni_format, alphabet
 
 
+def vpa_json():
+    # Define call, return, and internal symbols for JSON
+    call_set = ['{', '[']
+    return_set = ['}', ']']
+    internal_set = [':', ',', 'key', 'val']  # Keys, values, and separators as internal alphabet symbols
+
+    # Define the input alphabet
+    input_alphabet = VpaAlphabet(
+        internal_alphabet=internal_set,
+        call_alphabet=call_set,
+        return_alphabet=return_set
+    )
+
+    # Define states and transitions
+    state_setup = {
+        "q0": (False, {
+            "{": [("q1", 'push', '{')],
+            "[": [("q2", 'push', '[')],
+            "}": [("q0", 'pop', '{')],
+            "]": [("q0", 'pop', '[')],
+            "key": [("q3", None, None)],  # Expect a key in an object
+
+        }),
+
+        # Array parsing state
+        "q2": (False, {
+            "val": [("q5", None, None)],  # Allow multiple values in an array
+            "[": [("q2", 'push', '[')],  # Nested arrays
+            "]": [("q0", 'pop', '[')],  # End of array
+        }),
+
+        # After parsing a key
+        "q3": (False, {
+            ":": [("q4", None, None)],  # Key-value separator
+        }),
+
+        # After parsing a key-value separator
+        "q4": (False, {
+            "val": [("q5", None, None)],  # Expecting a value
+            "{": [("q0", 'push', '{')],  # Nested object
+            "[": [("q2", 'push', '[')],  # Nested array
+        }),
+
+        # After parsing a value in an object
+        "q5": (False, {
+            ",": [("q4", None, None)],  # Another key-value pair
+            "}": [("q0", 'pop', '{')],  # End of object
+            "]": [("q0", 'pop', '[')],  # End of object
+        }),
+    }
+
+    # Construct and return the VPA
+    vpa = Vpa.from_state_setup(state_setup, init_state_id="q0", input_alphabet=input_alphabet)
+    return vpa
+
+
 def get_all_VPAs():
-    return [vpa_for_L1(), vpa_for_L2(), vpa_for_L4(), vpa_for_L5(), vpa_for_L7(), vpa_for_L8(),
-            vpa_for_L9(),
-            vpa_for_L10(), vpa_for_L11(), vpa_for_L12(), vpa_for_L13(), vpa_for_L14(), vpa_for_L15()]
+    from aalpy import load_automaton_from_file
+    arithmetics_vpa = load_automaton_from_file('../DotModels/arithmetics.dot', 'vpa')
+    return [vpa_L1(), vpa_L2(), vpa_L3(), vpa_L4(),
+            vpa_L6(), vpa_L8(), vpa_L9(), vpa_L10(),
+            vpa_L11(), vpa_L12(), vpa_for_odd_parentheses(), vpa_for_odd_parentheses(), arithmetics_vpa]
+
+#
+# if __name__ == '__main__':
+#     test_seq = [
+#         ('{', '}'),
+#         ('{', '[', ']', '}'),
+#         ('[', ']', '{', '}'),
+#         ('{', 'key', ':', 'val', '}'),
+#         ('{', 'key', ':', '{', 'key', ':', 'val', '}', '}'),
+#         ('{', 'key', ':', '[', ']', '}'),
+#         ('{', 'key', ':', '[', 'val', ']', '}'),
+#         ('{', 'key', ':', '[', 'val', ',', 'val', ',', 'val', ']', '}'),
+#         ('{', 'key', ':', '[', 'val', ']', 'key', ':', 'val', '}'),
+#
+#     ]
+#
+#     vj = vpa_json()
+#     vj.visualize()
+#     for ts in test_seq:
+#         print('-----------------------------------')
+#         vj.reset_to_initial()
+#         o = vj.execute_sequence(vj.initial_state, ts)
+#         if not o[-1]:
+#             print(ts)
+#     exit()

@@ -196,8 +196,8 @@ def benchmark_vpa_dfa():
     label_data = []
 
     for i, vpa in enumerate(
-            [vpa_for_L1(), vpa_for_L2(), vpa_for_L3(), vpa_for_L4(), vpa_for_L5(), vpa_for_L7(), vpa_for_L8(),
-             vpa_for_L9(), vpa_for_L10(), vpa_for_L11(), vpa_for_L12(), vpa_for_L13(), vpa_for_L14(), vpa_for_L15()]):
+            [vpa_L1(), vpa_L2(), vpa_for_L3(), vpa_L3(), vpa_for_L5(), vpa_L4(), vpa_L6(),
+             vpa_L8(), vpa_for_L10(), vpa_for_L11(), vpa_L9(), vpa_L10(), vpa_L11(), vpa_L12()]):
         print(f'VPA {i + 1 if i < 6 else i + 2}')
         label_data.append(f'VPA {i + 1 if i < 6 else i + 2}')
 

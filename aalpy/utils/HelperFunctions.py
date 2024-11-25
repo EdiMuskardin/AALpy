@@ -339,9 +339,6 @@ def is_balanced(input_seq, vpa_alphabet):
 
 
 def generate_input_output_data_from_automata(model, num_sequances=4000, min_seq_len=1, max_seq_len=16):
-    from aalpy.automata import Sevpa, Vpa
-    if isinstance(model, (Sevpa, Vpa)):
-        return generate_input_output_data_from_vpa(model, num_sequances, min_seq_len, max_seq_len)
 
     alphabet = model.get_input_alphabet()
     input_output_sequances = []
@@ -358,21 +355,38 @@ def generate_input_output_data_from_automata(model, num_sequances=4000, min_seq_
     return input_output_sequances
 
 
-def generate_input_output_data_from_vpa(vpa, num_sequances=4000, min_seq_len=1, max_seq_len=16):
+def generate_input_output_data_from_vpa(vpa, num_sequances=1000, max_seq_len=16, max_attempts=None):
     alphabet = vpa.input_alphabet.get_merged_alphabet()
-    input_output_sequances = []
-    while len(input_output_sequances) < num_sequances:
-        sequance = []
-        for _ in range(random.randint(min_seq_len, max_seq_len)):
-            sequance.append(random.choice(alphabet))
+    data_set = set()
 
-        # not necessary as PAPNI checks it, but this way you actually generate num_sequances number of sequances
-        if not vpa.is_balanced(sequance):
-            continue
+    num_nominal_tries = num_sequances // 2
+    num_generation_attempts = 0
+
+    max_attempts = max_attempts if max_attempts is not None else num_sequances * 50
+
+    while len(data_set) < num_sequances:
+        num_generation_attempts += 1
+        # it can happen that it is not possible to generate num_sequances balanced words of lenght <= max_seq_len
+        if num_generation_attempts == max_attempts:
+            break
+
+        sequance = ()
 
         vpa.reset_to_initial()
-        outputs = vpa.execute_sequence(vpa.initial_state, sequance)
 
-        input_output_sequances.append(list(zip(sequance, outputs)))
+        for _ in range(max_seq_len):
+            if num_generation_attempts <= num_nominal_tries:
+                possible_transitions = list(vpa.current_state.transitions.keys())
+                if not possible_transitions:
+                    break
+                chosen_input = random.choice(possible_transitions)
+            else:
+                chosen_input = random.choice(alphabet)
+            sequance += (chosen_input,)
 
-    return input_output_sequances
+            output = vpa.step(chosen_input)
+            #if vpa.is_balanced(sequance):
+            data_set.add((sequance, output))
+
+    data_set = list(data_set)
+    return data_set
