@@ -22,7 +22,7 @@
 </div>
 <hr />
 
-AALpy is a light-weight automata learning library written in Python. 
+AALpy is a light-weight [automata learning](https://medium.com/p/82f7ec21d50d) library written in Python. 
 You can start learning models of black-box systems with a few lines of code.
 
 AALpy supports both **active** and **passive** automata learning algorithms that can be used to learn a variety of modeling formalisms, including 
@@ -55,6 +55,7 @@ For manual installation, clone the repo and install `pydot` (the only dependency
 
 ## Documentation and Wiki
 
+High level introduction to automata learning can be found at the following [Medium post](https://medium.com/p/82f7ec21d50d).
 If you are interested in automata learning or would like to understand the automata learning process in more detail,
 please check out our **Wiki**. On Wiki, you will find more detailed examples on how to use AALpy.
 - <https://github.com/DES-Lab/AALpy/wiki>
