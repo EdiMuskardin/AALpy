@@ -38,8 +38,8 @@ class RpniNode:
         if self.type != 'mealy':
             return self.output == other.output or self.output is None or other.output is None
         else:
-            red_io = {i: o for i, o in self.children.keys()}
-            blue_io = {i: o for i, o in other.children.keys()}
+            red_io = {i: o for i, o in self.output.items()}
+            blue_io = {i: o for i, o in other.output.items()}
             for common_i in set(red_io.keys()).intersection(blue_io.keys()):
                 if red_io[common_i] != blue_io[common_i]:
                     return False
